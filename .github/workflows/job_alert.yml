@@ -1,0 +1,40 @@
+name: Hourly LinkedIn Job Alert
+
+on:
+  schedule:
+    # Runs at minute 15 of every hour (UTC)
+    - cron: '15 * * * *'
+  workflow_dispatch: # Allows you to test it manually with a button click
+
+permissions:
+  contents: write
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run LinkedIn scraper
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scraper.py
+
+      - name: Save seen jobs history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@://github.com"
+          git add seen_jobs.json
+          git diff --staged --quiet || git commit -m "Update seen jobs"
+          git push
+          
